@@ -1,2 +1,2 @@
 # jekyll_demo
-Study place for jekyll
+Project homepage:[sophiemen.github.io]:(http://sophiemen.github.io/jekyll_demo/)
