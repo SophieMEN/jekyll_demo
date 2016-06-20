@@ -22,7 +22,7 @@ render_matrix();
 		      .append("g")
 		      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-		    d3.json("_force_all.json", function(miserables) {
+		    d3.json("force_all.json", function(miserables) {
 		    var matrix = [],
 		      nodes = miserables.nodes,
 		      n = nodes.length;
