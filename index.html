@@ -1,101 +1,228 @@
-<html>  
-  <head>  
-        <meta charset="utf-8">  
-        <title>MedWordVis</title>  
-  <style>
-
-	.chord path {
-  		fill-opacity: 0.67;
-  		stroke: #000;
-  		stroke-width: 0.5px;
-	}
-	#force{
-		width:600px;
-		height:400px;
-		border: thin solid #aaa;
-		float:left;
-	}
-	#data-info{
-		width:200px;
-		height:400px;
-		border: thin solid #aaa;
-		float:left;
-	}
-	
-	#matrix{
-		width:400px;
-		height:400px;
-		border: thin solid #aaa;
-		clear:left;
-		float:left;
-	}
-	#bundle{
-		width:400px;
-		height:400px;
-		border: thin solid #aaa;
-
-		float:left;
-	}
-	.background {
-		  fill: #eee;
-	}
-
-	line {
-	  stroke: #bbb;
-	}
-	.selected {
-		stroke: red;
-		stroke-width:2px;
-	}
-	text.active {
-	  fill: red;
-	}
-	
-	.brush .extent {
-	  fill-opacity: .1;
-	  stroke: gray;
-	  shape-rendering: crispEdges;
-	}
-
-	#matrix text {
-	  font: 10px sans-serif;
-	}
-	#bundle text {
-	  font: 10px sans-serif;
-	}
-	#force text {
-	  font: 10px sans-serif;
-	}
-
-  </style>
-  </head> 
-    <body> 
-    <div id = "force"> </div>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>User Log</title>
+    <script type="text/javascript" src="d3.js"></script>
+    <style type="text/css">
+            .axis path,
+            .axis line {
+                fill: none;
+                stroke: black;
+                shape-rendering: crispEdges;
+            }
+            .axis text {
+                font-family: sans-serif;
+                font-size: 11px;
+            }
+            #svgpaper{
+                width:1000px;
+                height:530px;
+                border: thin solid #eee;
+                float:left;
+            }
+            #data-info{
+                width:250px;
+                height:530px;
+                border: thin solid #eee;
+                float:left;
+            }
+            .xgrid line {
+                fill: none;
+                stroke: #eee;
+                stroke-width: 1px;
+                shape-rendering: crispEdges;
+            }
+            .ygrid line {
+                fill: none;
+                stroke: #eee;
+                stroke-width: 1px;
+                shape-rendering: crispEdges;
+            }
+    </style>
+    </head>
+    <body>
+    <div id = "svgpaper"></div>
     <div id = "data-info" > 
-    	<h3>Data Info<h3>
-    	<p>-------------------------------</p>
-    	<p>2:病灶,3:表型,4:用药</p>
-    	<p>-------------------------------</p>
-        <p> <span id="content"></span> </p>
+      <h3>Data Info</h3>
+        <p>Username: <span id="username"></span></p>
+        <p>Log num: <span id="lognum"></span></p>
+        <p>Active chapters：<span id="chaps"></span></p>
+        <h3>Log Info</h3>
+        <p><span id="content"></span></p>
     </div>
-    <div id = "matrix"> 
-    	<p>Order:
-  		<select id="order">
-    		<option value="group">by Cluster</option>
-    		<option value="name">by Name</option>
-    		<option value="count">by Frequency</option>
-  		</select>
-		</p>
-	</div>
-	<div id = "bundle" > </div>
+        <script type="text/javascript">
+            // 高宽
+            var width = 1000;
+            var height = 530;
+            var padding = 40;
+            var bottom = height - padding;
+            var step = 50;
+            //create svg in #svgpaper
+            var svg = d3.select("#svgpaper").append("svg")
+                .attr("width",width)
+                .attr("height",height);
+            //prepare data for tScale
+            label = new Array(10);
+            yPos = new Array(10);
+            for(i=0;i<10;i++)
+            {
+              yPos[i] = height - padding*2 - step*i;
+              label[i] = ((8+i*2)%24).toString()+':00';
+            }
+            //define scales
+            var dateScale = d3.time.scale()
+                .domain([new Date("2014-03-06"),new Date("2014-06-14")])
+                .range([0,width-padding*2]);
+            dateScale.ticks(d3.time.week);
+            var tScale = d3.scale.ordinal()
+                .domain(label)
+                .range(yPos); 
+            var yScale = d3.scale.linear()
+                             .domain([3600*8, 3600*26])
+                             .range([height - padding*2, 0]);
+            //load data and render
+            name = "lulu2011";
+            course = "00720091";
+            path = course + "_" + name + ".csv";
+            d3.csv(course+".csv",function(error,dataset){
+              if(error){
+                console.log(error);
+               }
+               else
+               {
+                svg.selectAll(".xgrid")
+                   .data(dataset)
+                   .enter()
+                   .append("g")
+                   .attr("class","xgrid")
+                   .append("line")
+                   .attr("x1",function(d){
+                      return padding + dateScale(new Date(d.pub_date));
+                   })
+                   .attr("x2",function(d){
+                      return padding + dateScale(new Date(d.pub_date));
+                   })
+                   .attr("y1",padding)
+                   .attr("y2",height - padding);
+                svg.selectAll(".ygrid")
+                   .data(yPos)
+                   .enter()
+                   .append("g")
+                   .attr("class","ygrid")
+                   .append("line")
+                   .attr("x1",padding)
+                   .attr("x2",width-padding)
+                   .attr("y1",function(d){
+                    return d+padding;
+                   })
+                   .attr("y2",function(d){
+                    return d+padding;
+                   });
+
+               }
+            })
 
 
-	<script src="http://d3js.org/d3.v3.min.js"></script>
-	<!-- bundle-->
-	<script src="bundle.js"></script>
-	<script type="text/javascript" src="matrix.js">	</script>
-	<script src="force1.js">	</script>
+
+            d3.csv(path,function (error,dataset){
+               if(error){
+                console.log(error);
+               }
+               else
+               {
+                //show detail in #data-info
+                d3.select("#data-info")
+                  .select("#username")
+                  .text(name);
+                d3.select("#data-info")
+                  .select("#lognum")
+                  .text(dataset.length);
 
 
-    </body>  
-</html>  
+                //draw circles
+                svg.selectAll("circle")
+                   .data(dataset)
+                   .enter()
+                   .append("circle")
+                   .attr("cx", function(d) {
+                    str = d.type;
+                    if (str.substring(0,7) == "problem")
+                        return padding + dateScale(new Date(d.time))-6;
+                    else if (str.substring(6,11) == "event")
+                        return padding + dateScale(new Date(d.time));
+                    else
+                        return padding + dateScale(new Date(d.time))+6;
+                   })
+                   .attr("cy", function(d) {
+                        if (d.time[12]==":")
+                          { 
+                            h = Number(d.time[11]); 
+                            m = Number(d.time.substring(13,15));
+                            s = Number(d.time.substring(16,18));
+                          }
+                        else
+                          { 
+                            h = Number(d.time.substring(11,13));
+                            m = Number(d.time.substring(14,16));
+                            s = Number(d.time.substring(17,19));
+                          }                     
+                        
+                        if (h<2)
+                          { h = h+24; }
+                        else if(h<8)
+                          { h = 8; }
+                        scd = h*3600 + m*60 + s;
+                        return yScale(scd) + padding;
+                   })
+                   .attr("r",3)
+                   .attr("fill",function(d){
+                      return color(d.type);
+                   })
+                   .on("mouseover",function(d){
+                      mouseover(d);
+                   })
+                   .style("opacity",function(d){
+                    str = d.type;
+                    if (str.substring(0,7) == "problem")
+                      return 1;
+                    else if (str.substring(6,11) == "event")
+                      return 1;
+                    else 
+                      return 0.4;
+                   });
+                   
+
+                // add axis       
+                var xAxis = d3.svg.axis().scale(dateScale).orient("bottom");
+                var yAxis = d3.svg.axis().scale(tScale).orient("left");
+                svg.append("g")
+                   .attr("class","axis")
+                   .attr("transform","translate(" + padding + "," + bottom + ")")
+                   .call(xAxis);
+                svg.append("g")
+                   .attr("class","axis")
+                   .attr("transform","translate(" + padding + "," + padding + ")")
+                   .call(yAxis);
+               }
+
+
+            });
+            function color(str){
+                if (str.substring(0,7) == "problem")
+                  return "#FF7F0E";
+                else if (str.substring(6,11) == "event")
+                  return "#2CA02C";
+                else 
+                  return "#aaa";
+            }
+            function mouseover(d){
+              d3.select("#data-info")
+              .select("#content")
+              .text(d.chap +","+ d.type + "," + d.time);
+            }
+
+        </script>
+
+    </body>
+</html>
