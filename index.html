@@ -16,15 +16,17 @@
                 font-size: 11px;
             }
             #svgpaper{
-                width:1000px;
-                height:530px;
-                border: thin solid #eee;
+                width:800px;
+                height:560px;
+                border: thin solid #ccc;
                 float:left;
             }
             #data-info{
                 width:250px;
-                height:530px;
-                border: thin solid #eee;
+                height:540px;
+                margin-left:10px;
+                padding:10px;
+                border: thin solid #ccc;
                 float:left;
             }
             .xgrid line {
@@ -45,58 +47,83 @@
     <div id = "svgpaper"></div>
     <div id = "data-info" > 
       <h3>Data Info</h3>
-        <p>Username: <span id="username"></span></p>
+        <p>User: <span id="user"></span></p>
+        <p>Course: <span id="course"></span></p>
         <p>Log num: <span id="lognum"></span></p>
-        <p>Active chapters：<span id="chaps"></span></p>
-        <h3>Log Info</h3>
+        <p>Learned chapters:<span id="chaps"></span></p>
+        <h3>Log Content</h3>
         <p><span id="content"></span></p>
     </div>
         <script type="text/javascript">
+        var courseid = ["20220214", "00720091", "30640014"]
+        var coursename = ["电路原理","足球运动与科学","宇宙中心的英语听说"]
+
+            //data
+            var name = "Bruce_qing";
+            var course_i = 0;
+            var course = courseid[course_i];
+            d3.select("#data-info")
+                  .select("#user")
+                  .text(name);
+            d3.select("#data-info")
+                  .select("#course")
+                  .text(coursename[course_i]);
+
             // 高宽
-            var width = 1000;
-            var height = 530;
+            var width = 800;
+            var height = 560;
             var padding = 40;
             var bottom = height - padding;
-            var step = 50;
+            var step = 40;
             //create svg in #svgpaper
             var svg = d3.select("#svgpaper").append("svg")
                 .attr("width",width)
                 .attr("height",height);
             //prepare data for tScale
-            label = new Array(10);
-            yPos = new Array(10);
-            for(i=0;i<10;i++)
+            label = new Array(13);
+            yPos = new Array(13);
+            for(i=0;i<13;i++)
             {
               yPos[i] = height - padding*2 - step*i;
-              label[i] = ((8+i*2)%24).toString()+':00';
+              label[i] = ((4+i*2)%24).toString()+':00';
             }
+            console.log(label);
+            console.log(yPos);
+
             //define scales
-            var dateScale = d3.time.scale()
-                .domain([new Date("2014-03-06"),new Date("2014-06-14")])
-                .range([0,width-padding*2]);
-            dateScale.ticks(d3.time.week);
+            var dateScale = d3.time.scale().range([0,width-padding*2]);
             var tScale = d3.scale.ordinal()
                 .domain(label)
                 .range(yPos); 
             var yScale = d3.scale.linear()
-                             .domain([3600*8, 3600*26])
+                             .domain([3600*4, 3600*28])
                              .range([height - padding*2, 0]);
-            //load data and render
-            name = "lulu2011";
-            course = "00720091";
-            path = course + "_" + name + ".csv";
+
+            //load course data and draw grid lines
+            var n = 0;
             d3.csv(course+".csv",function(error,dataset){
               if(error){
                 console.log(error);
                }
                else
                {
-                svg.selectAll(".xgrid")
+                len = dataset.length;
+                console.log(len);
+                var temp = new Date(dataset[0].pub_date.substring(0,10));
+                fdate = new Date(temp.getTime() - 7*24*3600*1000);
+                temp = new Date(dataset[len-1].pub_date.substring(0,10));
+                ldate = new Date(temp.getTime() + 4*7*24*3600*1000);
+                dateScale.domain([fdate,ldate]).nice(d3.tim)
+                  
+                dateScale.ticks(d3.time.week);
+                //console.log(dataset);
+                var xgrid = svg.selectAll(".xgrid")
                    .data(dataset)
                    .enter()
                    .append("g")
-                   .attr("class","xgrid")
-                   .append("line")
+                   .attr("class","xgrid");
+
+                xgrid.append("line")
                    .attr("x1",function(d){
                       return padding + dateScale(new Date(d.pub_date));
                    })
@@ -105,6 +132,24 @@
                    })
                    .attr("y1",padding)
                    .attr("y2",height - padding);
+                xgrid.append("text")
+                      .attr("x", function(d){
+                      return padding + dateScale(new Date(d.pub_date));
+                   })
+                      .attr("y", padding-8)
+                      .attr("dy", ".32em")
+                      .attr("text-anchor", "start")
+                      .text(function(d, i) {
+                        return (i+1).toString();
+                      })
+                      .style("fill","gray");
+                svg.append("text")
+                    .attr("x",padding)
+                    .attr("y",padding-8)
+                    .attr("dy", ".32em")
+                    .attr("text-anchor", "start")
+                    .text("Chap")
+                    .style("fill","gray");
                 svg.selectAll(".ygrid")
                    .data(yPos)
                    .enter()
@@ -119,26 +164,103 @@
                    .attr("y2",function(d){
                     return d+padding;
                    });
+                
+                //len = 8;
+                var chapList = new Array(len);
+                for (i=0;i<len;i++)
+                  chapList[i] = false;
+
+                render(name,course,fdate,ldate,chapList);
 
                }
             })
 
-
-
+            function render(name,course,first_date,last_date,chapList)
+            {
+              path = course + "_" + name + ".csv";
+              //load user data and draw scatter
             d3.csv(path,function (error,dataset){
                if(error){
                 console.log(error);
                }
                else
                {
+                //console.log(dataset);
                 //show detail in #data-info
-                d3.select("#data-info")
-                  .select("#username")
-                  .text(name);
+                
+                var logn = dataset.length;
                 d3.select("#data-info")
                   .select("#lognum")
-                  .text(dataset.length);
+                  .text(logn);
+                var learned = " ";
+                var labeln = parseInt(logn/5) + 1;
+                var labelList = new Array(labeln),labelList2 = new Array();
+                var last_i,last_chap,last_time;
 
+                for(i=0;i<logn;i++)
+                {
+                  chap = dataset[i].chap;
+                  time = dataset[i].time;
+
+                  if (chap.length==5)
+                    id = Number(chap[4]);
+                  else
+                    id = Number(chap.substring(4,6));
+                  if(chapList[id-1] == false)
+                  {
+                    chapList[id-1] = true;
+                    if(learned == " ")
+                      learned = learned + id.toString();
+                    else
+                      learned = learned + ","+ id.toString();
+                  }
+                  if (i==0){
+                    last_i = 0;
+                    last_chap = id;
+                    last_time = time;
+                    labelList[last_i] = {"time":last_time,"chap":last_chap,"type":0};
+                  }
+                  else{
+                    if( id!=last_chap ) 
+                    {
+                      last_i = last_i + 1;
+                      last_chap = id;
+                      last_time = time;
+                      labelList[last_i] = {"time":last_time,"chap":last_chap,"type":1};
+                    }
+                    else if( calc_interval(last_time,time)>7200 )
+                    {
+                      last_i = last_i + 1;
+                      last_chap = id;
+                      last_time = time;
+                      labelList[last_i] = {"time":last_time,"chap":last_chap,"type":0};
+                    }
+                  }
+                }
+                d3.select("#data-info")
+                  .select("#chaps")
+                  .text(learned);
+                //add chapter labels
+                labelList2 = labelList.slice(0,last_i+1);
+                console.log(labelList2);               
+                var labels = svg.selectAll(".labels")
+                   .data(labelList2)
+                   .enter()
+                   .append("g")
+                   .attr("class","labels");
+                labels.append("text")
+                      .attr("x", function(d){
+                      return padding + dateScale(new Date(d.time)) + 10;
+                   })
+                      .attr("y", function(d){
+                        return calc_y(d.time) - d.type*10;
+                      })
+                      .attr("dy", ".32em")
+                      .attr("text-anchor", "start")
+                      .text(function(d) {
+                        return "C" + d.chap;
+                      })
+                      .style("fill","gray");
 
                 //draw circles
                 svg.selectAll("circle")
@@ -155,25 +277,7 @@
                         return padding + dateScale(new Date(d.time))+6;
                    })
                    .attr("cy", function(d) {
-                        if (d.time[12]==":")
-                          { 
-                            h = Number(d.time[11]); 
-                            m = Number(d.time.substring(13,15));
-                            s = Number(d.time.substring(16,18));
-                          }
-                        else
-                          { 
-                            h = Number(d.time.substring(11,13));
-                            m = Number(d.time.substring(14,16));
-                            s = Number(d.time.substring(17,19));
-                          }                     
-                        
-                        if (h<2)
-                          { h = h+24; }
-                        else if(h<8)
-                          { h = 8; }
-                        scd = h*3600 + m*60 + s;
-                        return yScale(scd) + padding;
+                        return calc_y(d.time);
                    })
                    .attr("r",3)
                    .attr("fill",function(d){
@@ -190,8 +294,7 @@
                       return 1;
                     else 
                       return 0.4;
-                   });
-                   
+                   });          
 
                 // add axis       
                 var xAxis = d3.svg.axis().scale(dateScale).orient("bottom");
@@ -208,6 +311,28 @@
 
 
             });
+
+            }
+            
+            function calc_y(str){
+                if (str[12]==":")
+                { 
+                  h = Number(str[11]); 
+                  m = Number(str.substring(13,15));
+                  s = Number(str.substring(16,18));
+                }
+                else
+                { 
+                  h = Number(str.substring(11,13));
+                  m = Number(str.substring(14,16));
+                  s = Number(str.substring(17,19));
+                }                     
+                        
+                if (h<4)
+                  h = h+24; 
+                scd = h*3600 + m*60 + s;
+                return yScale(scd) + padding;
+            }
             function color(str){
                 if (str.substring(0,7) == "problem")
                   return "#FF7F0E";
@@ -219,7 +344,15 @@
             function mouseover(d){
               d3.select("#data-info")
               .select("#content")
-              .text(d.chap +","+ d.type + "," + d.time);
+              .text(d.chap +", "+ d.type + ", " + d.time + ", " + d.detaT + "天");
+            }
+            function calc_interval(s1,s2){
+                t1 = new Date(s1).getTime();
+                t2 = new Date(s2).getTime();
+                if (t1 < t2)
+                  return (t2 - t1) / 1000;
+                else
+                  return (t1 - t2) / 1000;
             }
 
         </script>
